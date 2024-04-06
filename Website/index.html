@@ -2,13 +2,30 @@
 <html>
 <head>
     <title>Audio Recorder</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Record your message</h1>
-    <button onclick="startRecording()">Start Recording</button>
-    <button onclick="stopRecording()">Stop Recording</button>
-    <div id="translation" style="border:1px solid black; width:300px; height:300px"></div>
 
-    <script src="scripts.js"></script> <!-- Link to your JavaScript file -->
+<div class="container">
+    <div class="left-side">
+        <h1>Customer order message</h1>
+        <button onclick="startRecording()">Start Recording</button>
+        <button onclick="stopRecording()">Stop Recording</button>
+
+        <h1>Customer Monitor</h1>
+        <div id="translation_to_customer"></div>
+    </div>
+
+    <div class="right-side">
+        <h1>Crew response message</h1>
+        <button onclick="startRecordingCrew()">Start Recording</button>
+        <button onclick="stopRecordingCrew()">Stop Recording</button>
+
+        <h1>Crew Monitor</h1>
+        <div id="translation_to_crew"></div>
+    </div>
+</div>
+
+<script src="scripts.js"></script>
 </body>
 </html>

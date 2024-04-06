@@ -1,9 +1,13 @@
 let mediaRecorder;
 let audioChunks = [];
+let source_language = '';
+let customer = true;
+// let language_support_score = 0.1;
 
 const serverUrl = "http://127.0.0.1:8000";
 
 function startRecording() {
+    customer = true;
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
             mediaRecorder = new MediaRecorder(stream);
@@ -20,18 +24,6 @@ function stopRecording() {
         const audioBlob = new Blob(audioChunks, { 'type' : 'audio/mp3' });
         audioChunks = [];
 
-        // // Create a URL for the blob
-        // const audioUrl = URL.createObjectURL(audioBlob);
-
-        // // Create a temporary link to download the file
-        // const downloadLink = document.createElement('a');
-        // downloadLink.href = audioUrl;
-        // // The default file name could be anything you prefer
-        // downloadLink.download = `recorded-${new Date().toISOString().replace(/:|\./g, '-')}.mp3`;
-        // document.body.appendChild(downloadLink);
-        // downloadLink.click();
-        // document.body.removeChild(downloadLink);
-
         uploadFile(audioBlob);
     };
 }
@@ -45,7 +37,7 @@ async function uploadFile(audioBlob) {
         reader.onerror = error => reject(error);
     });
 
-    fetch(serverUrl + "/upload", { // This should match your Chalice API endpoint for uploading
+    fetch(serverUrl + "/upload", {
         method: "POST",
         headers: {
             'Accept': 'application/json',
@@ -63,7 +55,7 @@ async function uploadFile(audioBlob) {
 }
 
 function transcribeAudio(filename) {
-    fetch(serverUrl + "/transcribe", { // Updated to POST and endpoint structure
+    fetch(serverUrl + "/transcribe", {
         method: "POST",
         headers: {
             'Accept': 'application/json',
@@ -73,26 +65,66 @@ function transcribeAudio(filename) {
     })
     .then(response => response.json())
     .then(data => {
-        translateText(data.transcribedText);
-        //console.log(data)
+        // language_support_score = data.transcribedTextScore;
+        translateText(data.transcribedText, data.transcribedTextScore);
     })
     .catch((error) => {
         console.error('Error:', error);
     });
 }
 
-function translateText(text) {
-    fetch(serverUrl + '/translate', { // Your endpoint for translating
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text })
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.querySelector('#translation').innerText = data.translatedText; // Displaying translated text
-    });
+function translateText(text, score) {
+
+    if (score < 0.7){
+        document.querySelector('#translation_to_crew').innerText = 'Language not supported.';
+        document.querySelector('#translation_to_customer').innerText = 'Language not supported.';
+    } else {
+        let requestBody;
+
+        if (customer){
+            requestBody = JSON.stringify({ text: text, targetLanguage: 'en' });
+        } else {
+            requestBody = JSON.stringify({ text: text, targetLanguage: source_language});
+        }
+
+
+        fetch(serverUrl + '/translate', {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: requestBody
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (customer){
+                document.querySelector('#translation_to_crew').innerText = data.translatedText;
+                document.querySelector('#translation_to_customer').innerText = ' ';
+                source_language = data.sourceLanguage;
+            } else {
+                document.querySelector('#translation_to_customer').innerText = data.translatedText;
+                document.querySelector('#translation_to_crew').innerText = ' ';
+            }
+        });
+    }
 }
 
+function startRecordingCrew() {
+    customer = false;
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+            mediaRecorder.start();
+        });
+}
 
+function stopRecordingCrew() {
+    mediaRecorder.stop();
+    mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { 'type' : 'audio/mp3' });
+        audioChunks = [];
 
-
+        uploadFile(audioBlob);
+    };
+}
