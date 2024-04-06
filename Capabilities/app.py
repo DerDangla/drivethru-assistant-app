@@ -6,7 +6,7 @@ from chalicelib import storage_service, transcribe_service, translation_service
 app = Chalice(app_name='Capabilities')
 app.debug = True
 
-bucket_name = 'contentcen301245113.aws.ai'
+bucket_name = 'xxxx.aws.ai'
 
 storage_service = storage_service.StorageService(bucket_name)
 transcribe_service = transcribe_service.TranscribeService()
